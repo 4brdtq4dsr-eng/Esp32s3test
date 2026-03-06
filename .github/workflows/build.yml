@@ -1,0 +1,65 @@
+name: Build ESP32-S3 Firmware
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Build
+        run: pio run
+
+      - name: Prepare artifacts
+        run: |
+          set -euo pipefail
+          OUT_DIR=".pio/build/esp32-s3-devkitc-1"
+          ART_DIR="artifacts"
+          mkdir -p "$ART_DIR"
+
+          cp "$OUT_DIR/firmware.bin" "$ART_DIR/firmware.bin"
+          cp "$OUT_DIR/bootloader.bin" "$ART_DIR/bootloader.bin"
+          cp "$OUT_DIR/partitions.bin" "$ART_DIR/partitions.bin"
+
+          HAS_BOOT_APP0=0
+          if [ -f "$OUT_DIR/boot_app0.bin" ]; then
+            cp "$OUT_DIR/boot_app0.bin" "$ART_DIR/boot_app0.bin"
+            HAS_BOOT_APP0=1
+          fi
+
+          {
+            echo "ESP32-S3 flash instructions"
+            echo
+            echo "Use esptool.py with these addresses:"
+            echo "  0x0000 bootloader.bin"
+            echo "  0x8000 partitions.bin"
+            if [ "$HAS_BOOT_APP0" -eq 1 ]; then
+              echo "  0xE000 boot_app0.bin"
+            fi
+            echo "  0x10000 firmware.bin"
+            echo
+            echo "Example command:"
+            if [ "$HAS_BOOT_APP0" -eq 1 ]; then
+              echo "esptool.py --chip esp32s3 --port <PORT> --baud 921600 --before default_reset --after hard_reset write_flash -z 0x0000 bootloader.bin 0x8000 partitions.bin 0xE000 boot_app0.bin 0x10000 firmware.bin"
+            else
+              echo "esptool.py --chip esp32s3 --port <PORT> --baud 921600 --before default_reset --after hard_reset write_flash -z 0x0000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin"
+            fi
+          } > "$ART_DIR/FLASH_INSTRUCTIONS.txt"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32s3-firmware-artifacts
+          path: artifacts/
