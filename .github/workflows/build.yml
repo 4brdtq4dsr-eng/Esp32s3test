@@ -1,0 +1,33 @@
+name: build-firmware
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Build
+        run: pio run
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: esp32s3-bin
+          path: |
+            .pio/build/esp32-s3-devkitc-1/*.bin
+            .pio/build/esp32-s3-devkitc-1/firmware.elf
+            .pio/build/esp32-s3-devkitc-1/firmware.map
