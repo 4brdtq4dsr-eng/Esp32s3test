@@ -1,0 +1,37 @@
+ESP32-S3 DevKitC-1 Flash Instructions
+=====================================
+
+Prerequisites
+-------------
+1) Install PlatformIO Core:
+   pip install platformio
+
+2) Connect ESP32-S3 DevKitC-1 by USB.
+
+Build
+-----
+pio run
+
+Flash
+-----
+pio run -t upload
+
+Monitor serial logs
+-------------------
+pio device monitor -b 115200
+
+Manual esptool flash (optional)
+-------------------------------
+Use binaries from:
+.pio/build/esp32-s3-devkitc-1/
+
+Typical command pattern:
+python -m esptool --chip esp32s3 --port <PORT> --baud 921600 write_flash -z \
+  0x0 bootloader.bin \
+  0x8000 partitions.bin \
+  0x10000 firmware.bin
+
+Notes
+-----
+- Firmware assumes active-low joystick/buttons with INPUT_PULLUP.
+- If tactile button GPIOs differ on your board, edit src/main.cpp pin constants.
